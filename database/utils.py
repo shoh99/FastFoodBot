@@ -61,8 +61,8 @@ def db_product_details(product_id: int) -> Products:
     return db_session.scalar(query)
 
 
-def db_get_user_cart(chat_id: int) -> int:
-    query = select(Carts.id).join(Users).where(Users.telegram == chat_id)
+def db_get_user_cart(chat_id: int) -> Carts:
+    query = select(Carts).join(Users).where(Users.telegram == chat_id)
     return db_session.scalar(query)
 
 
@@ -73,3 +73,12 @@ def db_update_user_cart(price: DECIMAL, cart_id: int, quantity=1):
 
     db_session.execute(query)
     db_session.commit()
+
+
+def db_get_product_by_name(product_name: str) -> Products:
+    query = select(Products).where(Products.product_name == product_name)
+    return db_session.scalar(query)
+
+
+def db_update_users_cart(cart: Carts, quantity=1):
+    update(Carts).where(Carts.id == cart.id).values(quantiy=quantity)

@@ -5,12 +5,15 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
+from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
 
 from keyboards.inline_kb import *
 from keyboards.reply_kb import *
 from database.utils import *
+from utils.helper import *
+
 
 load_dotenv()
 
@@ -77,7 +80,7 @@ async def make_order(message: Message):
                          reply_markup=generate_category_menu())
 
 
-@dp.message(F.text == "Main menu")
+@dp.message(F.text == "📝Main menu")
 async def return_to_main_menu(message: Message):
     """back to main menu"""
     await bot.delete_message(chat_id=message.chat.id,
@@ -124,21 +127,79 @@ async def show_product_details(call: CallbackQuery):
     await bot.delete_message(chat_id=chat_id,
                              message_id=message_id)
 
-    if user_cart_id := db_get_user_cart(chat_id):
-        db_update_user_cart(price=product.price, cart_id=user_cart_id)
-        text = f"<b>{product.product_name}</b> \n\n"
-        text += f"<b>Description</b> - {product.description}\n"
-        text += f"Price: <b>{product.price} sum</b>"
+    if user_cart := db_get_user_cart(chat_id):
+        db_update_user_cart(price=product.price, cart_id=user_cart.id)
+        text = text_for_caption(product_name=product.product_name, price=product.price, description=product.description)
+
+        await bot.send_message(chat_id=chat_id,
+                               text="Choose modification",
+                               reply_markup=back_arrow_button())
 
         await bot.send_photo(chat_id=chat_id,
                              photo=FSInputFile(path=product.image),
                              caption=text,
-                             reply_markup=go_back_to_products(product.category_id))
+                             reply_markup=generate_constructor_button()
+                             )
 
     else:
         await bot.send_message(chat_id=chat_id,
                                text="Sorry you did not share your phone number",
                                reply_markup=share_phono_button())
+
+
+@dp.message(F.text == '⬅️Go Back')
+async def return_to_category_menu(message: Message):
+    """Back to product selection"""
+    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id - 1)
+    await make_order(message)
+
+
+@dp.callback_query(F.data.regexp(r'action [+-]'))
+async def increase_product_quantity(call: CallbackQuery):
+    """Increase quantity of product"""
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    product_name = call.message.caption.split("\n")[0].strip()
+    action = call.data.split()[-1]
+
+    product = db_get_product_by_name(product_name)
+    user_cart = db_get_user_cart(chat_id)
+
+    if action == '+':
+        user_cart.total_products += 1
+    elif action == '-':
+        if user_cart.total_products < 2:
+            await call.answer("Can't be less than one")
+        else:
+            user_cart.total_products -= 1
+
+    product_price = product.price * user_cart.total_products
+    db_update_user_cart(price=product_price,
+                        cart_id=user_cart.id,
+                        quantity=user_cart.total_products)
+
+    text = text_for_caption(product_name=product.product_name, price=product_price, description=product.description)
+
+    try:
+        await bot.edit_message_media(chat_id=chat_id,
+                                     message_id=message_id,
+                                     media=InputMediaPhoto(
+                                         media=FSInputFile(path=product.image),
+                                         caption=text
+                                     ),
+                                     reply_markup=generate_constructor_button(
+                                         quantity=user_cart.total_products)
+                                     )
+    except TelegramBadRequest:
+        pass
+
+
+@dp.callback_query(F.data.regexp(r'action [+-]'))
+async def decrease_product_quantity(call: CallbackQuery):
+    """Decrease quantity of product"""
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    await bot.send_message(chat_id=chat_id, text="Product decreased")
 
 
 @dp.message(F.text == "🛒 Carts")

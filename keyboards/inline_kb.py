@@ -38,3 +38,15 @@ def go_back_to_products(category_id: int) -> InlineKeyboardMarkup:
 
     return builder.as_markup()
 
+
+def generate_constructor_button(quantity=1) -> InlineKeyboardMarkup:
+    """buttons for selecting quantity of products"""
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="➖", callback_data="action -")
+    builder.button(text=str(quantity), callback_data=str(quantity))
+    builder.button(text="➕", callback_data="action +")
+    builder.button(text="Add to cart 🛒", callback_data="add_to_cart")
+
+    builder.adjust(3, 1)
+    return builder.as_markup()
