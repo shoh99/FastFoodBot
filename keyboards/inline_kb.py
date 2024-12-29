@@ -1,14 +1,15 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, InlineKeyboardMarkup
 
-from database.utils import db_get_all_category, db_get_products_by_category
+from database.utils import db_get_all_category, db_get_products_by_category, db_get_price_sum, db_get_user_cart
 
 
-def generate_category_menu() -> InlineKeyboardMarkup:
+def generate_category_menu(chat_id: int) -> InlineKeyboardMarkup:
     """categories buttons"""
     categories = db_get_all_category()
     builder = InlineKeyboardBuilder()
-    # TODO sum price of cart
-    builder.button(text=f"Your cart (TODO sum)", callback_data="your cart")
+    total_price = db_get_price_sum(chat_id)
+
+    builder.button(text=f"Your cart {total_price if total_price else 0} sums 💰", callback_data="your cart")
     [builder.button(text=category.category_name,
                     callback_data=f'category_{category.id}') for category in categories]
 

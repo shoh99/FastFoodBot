@@ -14,7 +14,6 @@ from keyboards.reply_kb import *
 from database.utils import *
 from utils.helper import *
 
-
 load_dotenv()
 
 TOKEN = getenv('TOKEN')
@@ -77,15 +76,18 @@ async def make_order(message: Message):
                            reply_markup=back_to_main_menu())
 
     await message.answer(text="Choose category",
-                         reply_markup=generate_category_menu())
+                         reply_markup=generate_category_menu(chat_id))
 
 
 @dp.message(F.text == "📝Main menu")
 async def return_to_main_menu(message: Message):
     """back to main menu"""
-    await bot.delete_message(chat_id=message.chat.id,
-                             message_id=message.message_id - 1)
-    await show_main_menu(message)
+    try:
+        await bot.delete_message(chat_id=message.chat.id,
+                                 message_id=message.message_id - 1)
+        await show_main_menu(message)
+    except TelegramBadRequest:
+        pass
 
 
 @dp.callback_query(F.data.regexp(r'category_[1-9]'))
@@ -112,7 +114,7 @@ async def return_to_category_button(call: CallbackQuery):
     await bot.edit_message_text(chat_id=chat_id,
                                 message_id=message_id,
                                 text="Choose category",
-                                reply_markup=generate_category_menu()
+                                reply_markup=generate_category_menu(chat_id)
                                 )
 
 
@@ -150,8 +152,11 @@ async def show_product_details(call: CallbackQuery):
 @dp.message(F.text == '⬅️Go Back')
 async def return_to_category_menu(message: Message):
     """Back to product selection"""
-    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id - 1)
-    await make_order(message)
+    try:
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id - 1)
+        await make_order(message)
+    except TelegramBadRequest:
+        pass
 
 
 @dp.callback_query(F.data.regexp(r'action [+-]'))
@@ -200,6 +205,36 @@ async def decrease_product_quantity(call: CallbackQuery):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
     await bot.send_message(chat_id=chat_id, text="Product decreased")
+
+
+@dp.callback_query(F.data == 'add_to_cart')
+async def put_products_to_cart(call: CallbackQuery):
+    """Put products to cart"""
+    try:
+        chat_id = call.message.chat.id
+        message_id = call.message.message_id
+        product_name = call.message.caption.split("\n")[0].strip()
+        product = db_get_product_by_name(product_name)
+        user_cart = db_get_user_cart(chat_id)
+
+        await bot.delete_message(chat_id=chat_id,
+                                 message_id=message_id)
+
+        if db_insert_or_update_finally_cart(cart_id=user_cart.id,
+                                            product_name=product_name,
+                                            total_products=user_cart.total_products,
+                                            total_price=user_cart.total_price):
+
+            await bot.send_message(chat_id=chat_id,
+                                   text=f"{product_name} added ➕to your cart 🛒")
+        else:
+            await bot.send_message(chat_id=chat_id,
+                                   text=f"{product_name} updated ✏️ in your cart 🛒")
+
+        await return_to_category_menu(call.message)
+
+    except TelegramBadRequest:
+        pass
 
 
 @dp.message(F.text == "🛒 Carts")

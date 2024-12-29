@@ -13,7 +13,7 @@ DB_PASSWORD = getenv('DB_PASSWORD')
 DB_ADDRESS = getenv('DB_HOST')
 DB_NAME = getenv('DB_NAME')
 
-engine = create_engine(f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}/{DB_NAME}')
+engine = create_engine(f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}/{DB_NAME}', echo=True)
 
 
 class Base(DeclarativeBase):

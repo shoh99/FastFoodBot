@@ -80,5 +80,50 @@ def db_get_product_by_name(product_name: str) -> Products:
     return db_session.scalar(query)
 
 
-def db_update_users_cart(cart: Carts, quantity=1):
-    update(Carts).where(Carts.id == cart.id).values(quantiy=quantity)
+def db_insert_or_update_finally_cart(cart_id: int, product_name: str, total_products: int, total_price: int) -> bool:
+    """Insert or update finally cart"""
+    try:
+        query = Finally_carts(cart_id=cart_id,
+                              product_name=product_name,
+                              quantity=total_products,
+                              final_price=total_price)
+
+        db_session.add(query)
+        db_session.commit()
+        return True
+    except IntegrityError:
+        db_session.rollback()
+        query = update(Finally_carts
+                       ).where(Finally_carts.product_name == product_name
+                               ).where(Finally_carts.cart_id == cart_id
+                                       ).values(quantity=total_products, final_price=total_price)
+
+        update(Finally_carts).where()
+        db_session.execute(query)
+        db_session.commit()
+        return False
+
+
+def db_save_finally_cart(product_name: str, quantity: int, final_price: DECIMAL, cart: Carts):
+    try:
+        query = Finally_carts(product_name=product_name,
+                              final_price=final_price,
+                              quantity=quantity,
+                              user_cart=cart)
+
+        db_session.add(query)
+        db_session.commit()
+    except IntegrityError:
+        db_session.rollback()
+    except AttributeError:
+        db_session.rollback()
+
+
+def db_get_price_sum(chat_id: int):
+    queue = select(sum(Finally_carts.final_price)
+           ).join(Carts
+                  ).join(Users
+                         ).where(Users.telegram == chat_id)
+
+    return db_session.execute(queue).fetchone()[0]
+
