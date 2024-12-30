@@ -86,8 +86,8 @@ async def return_to_main_menu(message: Message):
         await bot.delete_message(chat_id=message.chat.id,
                                  message_id=message.message_id - 1)
         await show_main_menu(message)
-    except TelegramBadRequest:
-        pass
+    except TelegramBadRequest as e:
+        print(e.message)
 
 
 @dp.callback_query(F.data.regexp(r'category_[1-9]'))
@@ -199,14 +199,6 @@ async def increase_product_quantity(call: CallbackQuery):
         pass
 
 
-@dp.callback_query(F.data.regexp(r'action [+-]'))
-async def decrease_product_quantity(call: CallbackQuery):
-    """Decrease quantity of product"""
-    chat_id = call.message.chat.id
-    message_id = call.message.message_id
-    await bot.send_message(chat_id=chat_id, text="Product decreased")
-
-
 @dp.callback_query(F.data == 'add_to_cart')
 async def put_products_to_cart(call: CallbackQuery):
     """Put products to cart"""
@@ -236,6 +228,59 @@ async def put_products_to_cart(call: CallbackQuery):
     except TelegramBadRequest:
         pass
 
+
+@dp.callback_query(F.data == 'your_cart')
+async def show_product_inside_cart(call: CallbackQuery):
+    try:
+        chat_id = call.message.chat.id
+        message_id = call.message.message_id
+
+        await bot.delete_message(chat_id=chat_id,
+                                 message_id=message_id)
+
+        text, cart_products = count_products_from_cart(chat_id, "Test")
+        await bot.send_message(chat_id=chat_id, text=text, reply_markup=generate_buttons_for_finally(cart_products))
+
+    except TelegramBadRequest as e:
+        print(e.message)
+
+
+@dp.callback_query(F.data.regexp(r'^(add_|minus_|remove_)'))
+async def update_finally_cart_products(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+
+    cart_id = call.data.split('_')[-1].strip()
+    action = call.data.split('_')[0].strip()
+
+    finally_cart = db_get_finally_cart(int(cart_id))
+    product = db_get_product_by_name(finally_cart.product_name)
+
+    new_price = 0
+    new_quantity = 0
+    if action == 'remove':
+        if db_delete_product_from_finally_cart(int(cart_id)):
+            await call.answer(text=f"{product.product_name} removed from cart")
+    else:
+        if action == 'add':
+            new_price = finally_cart.final_price + product.price
+            new_quantity = finally_cart.quantity + 1
+        elif action == 'minus':
+            new_price = finally_cart.final_price - product.price
+            new_quantity = finally_cart.quantity - 1
+
+        if new_quantity > 0:
+            db_update_finally_cart(int(cart_id), new_price, new_quantity)
+        else:
+            if db_delete_product_from_finally_cart(int(cart_id)):
+                await call.answer(text=f"{product.product_name} removed from cart")
+
+    text, cart_products = count_products_from_cart(chat_id, "Test")
+    await bot.edit_message_text(chat_id=chat_id,
+                                text=text,
+                                message_id=message_id,
+                                reply_markup=generate_buttons_for_finally(cart_products)
+                                )
 
 @dp.message(F.text == "🛒 Carts")
 async def show_carts(message: Message):

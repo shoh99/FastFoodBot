@@ -92,6 +92,8 @@ class Products(Base):
 
     product_category: Mapped[Categories] = relationship('Categories', back_populates='products')
 
+    def __str__(self):
+        return self.product_name
 
 def main():
     Base.metadata.create_all(engine)

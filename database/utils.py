@@ -67,8 +67,8 @@ def db_get_user_cart(chat_id: int) -> Carts:
 
 
 def db_update_user_cart(price: DECIMAL, cart_id: int, quantity=1):
-    query = update(Carts)\
-        .where(Carts.id == cart_id)\
+    query = update(Carts) \
+        .where(Carts.id == cart_id) \
         .values(total_price=price, total_products=quantity)
 
     db_session.execute(query)
@@ -121,9 +121,49 @@ def db_save_finally_cart(product_name: str, quantity: int, final_price: DECIMAL,
 
 def db_get_price_sum(chat_id: int):
     queue = select(sum(Finally_carts.final_price)
-           ).join(Carts
-                  ).join(Users
-                         ).where(Users.telegram == chat_id)
+                   ).join(Carts
+                          ).join(Users
+                                 ).where(Users.telegram == chat_id)
 
     return db_session.execute(queue).fetchone()[0]
 
+
+def db_get_all_product_inside_finally_cart(chat_id) -> Iterable[Finally_carts]:
+    """Get list of products based on telegram id"""
+    queue = select(Finally_carts
+                   ).join(Carts
+                          ).join(Users
+                                 ).where(Users.telegram == chat_id)
+
+    return db_session.scalars(queue).fetchall()
+
+
+def db_get_finally_cart(cart_id: int) -> Finally_carts:
+    """get finally cart by id"""
+    queue = select(Finally_carts).where(Finally_carts.id == cart_id)
+    return db_session.scalar(queue)
+
+
+def db_update_finally_cart(cart_id: int, new_price: DECIMAL, new_quantity: DECIMAL):
+    """update finally cart's price and quantity"""
+    try:
+        queue = update(Finally_carts
+                       ).where(Finally_carts.id == cart_id
+                               ).values(final_price=new_price, quantity=new_quantity)
+
+        db_session.execute(queue)
+        db_session.commit()
+
+    except IntegrityError as ee:
+        db_session.rollback()
+
+
+def db_delete_product_from_finally_cart(cart_id: int):
+    try:
+        queue = delete(Finally_carts).where(Finally_carts.id == cart_id)
+        db_session.execute(queue)
+        db_session.commit()
+        return True
+    except IntegrityError:
+        db_session.rollback()
+        return False
