@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, LabeledPrice
 from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
 
@@ -17,6 +17,7 @@ from utils.helper import *
 load_dotenv()
 
 TOKEN = getenv('TOKEN')
+PAYMENT = getenv('PAYMENT')
 
 dp = Dispatcher()
 bot = Bot(TOKEN,
@@ -281,6 +282,32 @@ async def update_finally_cart_products(call: CallbackQuery):
                                 message_id=message_id,
                                 reply_markup=generate_buttons_for_finally(cart_products)
                                 )
+
+
+@dp.callback_query(F.data == 'purchase')
+async def create_order(call: CallbackQuery):
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+
+    await bot.delete_message(chat_id=chat_id, message_id=message_id)
+
+    content = count_products_for_purchase(chat_id)
+    print(content)
+
+    text = content[0]
+    total_price = content[1]
+
+    await bot.send_invoice(chat_id=chat_id,
+                           title="Your order",
+                           description=text,
+                           payload="bot-defined invoice payload",
+                           provider_token=PAYMENT,
+                           currency="UZS",
+                           prices=[
+                               LabeledPrice(label="Total price", amount=int(total_price) * 100),
+                               LabeledPrice(label="Delivery", amount=10000)
+                           ])
+
 
 @dp.message(F.text == "🛒 Carts")
 async def show_carts(message: Message):

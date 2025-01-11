@@ -61,7 +61,7 @@ def generate_buttons_for_finally(product_carts: Iterable[Finally_carts]) -> Inli
     builder = InlineKeyboardBuilder()
     print(product_carts.__sizeof__())
     if product_carts.__sizeof__() > 0:
-        builder.button(text='Purchase', callback_data='purchase')
+        builder.button(text='Purchase🚀', callback_data='purchase')
 
         for cart in product_carts:
             builder.button(text='➕', callback_data=f'add_{cart.id}')
