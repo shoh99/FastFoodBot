@@ -167,3 +167,14 @@ def db_delete_product_from_finally_cart(cart_id: int):
     except IntegrityError:
         db_session.rollback()
         return False
+
+
+def db_get_user_info(chat_id: int) -> Users:
+    """return user info"""
+    query = select(Users).where(Users.telegram == chat_id)
+    return db_session.scalar(query)
+
+
+def db_clear_finally_cart(cart_id: int) -> None:
+    query = delete(Finally_carts).where(Finally_carts.cart_id == cart_id)
+    db_session.execute(query)

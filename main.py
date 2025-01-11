@@ -18,6 +18,7 @@ load_dotenv()
 
 TOKEN = getenv('TOKEN')
 PAYMENT = getenv('PAYMENT')
+MANAGER = getenv('MANAGER')
 
 dp = Dispatcher()
 bot = Bot(TOKEN,
@@ -307,6 +308,18 @@ async def create_order(call: CallbackQuery):
                                LabeledPrice(label="Total price", amount=int(total_price) * 100),
                                LabeledPrice(label="Delivery", amount=10000)
                            ])
+    await bot.send_message(chat_id=chat_id, text="Your Purchase Completed")
+    await sending_report_to_manager(chat_id, text)
+    user_cart = db_get_user_cart(chat_id)
+    db_clear_finally_cart(user_cart.id)
+
+
+async def sending_report_to_manager(chat_id: int, text: str):
+    """Sending message to group chat"""
+    user = db_get_user_info(chat_id)
+    text += f"\n\n<b>Customer name: {user.name}\nContact: {user.phone}</b>\n\n"
+
+    await bot.send_message(chat_id=MANAGER, text=text)
 
 
 @dp.message(F.text == "🛒 Carts")
