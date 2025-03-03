@@ -30,3 +30,12 @@ def back_arrow_button() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="⬅️Go Back")
     return builder.as_markup(resize_keyboard=True)
+
+
+def setting_commands(is_admin) -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+    if is_admin:
+        builder.button(text="🔐Admin")
+
+    builder.button(text ="Change language")
+    return builder.as_markup(resize_keyboard=True)

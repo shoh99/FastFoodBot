@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Type, Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy import update, delete, select, DECIMAL
@@ -178,3 +178,95 @@ def db_get_user_info(chat_id: int) -> Users:
 def db_clear_finally_cart(cart_id: int) -> None:
     query = delete(Finally_carts).where(Finally_carts.cart_id == cart_id)
     db_session.execute(query)
+
+
+def db_add_category(category_name):
+    """Add a new category to the database"""
+    try:
+        category = Categories(category_name=category_name)
+        db_session.add(category)
+        db_session.commit()
+        return True
+    except IntegrityError:
+        return False
+
+
+def db_add_product(category_id, product_name, description, price, image):
+    """Add a new product to the database"""
+    try:
+        product = Products(
+            category_id=category_id,
+            product_name=product_name,
+            description=description,
+            price=price,
+            image=image
+        )
+        db_session.add(product)
+        db_session.commit()
+        return True
+    except IntegrityError:
+        return False
+
+
+def db_get_all_categories():
+    """get all categories from database"""
+    return db_session.query(Categories).all()
+
+
+def db_get_all_products():
+    """get all products from database"""
+    return db_session.query(Products).all()
+
+
+def db_get_product_by_id(product_id) -> Optional[Type[Products]]:
+    return db_session.query(Products).filter(Products.id == product_id).first()
+
+
+def db_delete_category(category_id):
+    try:
+        products = db_session.query(Products).filter(Products.category_id == category_id).all()
+        for product in products:
+            db_session.delete(product)
+
+        category = db_session.query(Categories).filter(Categories.id == category_id).first()
+        if category:
+            db_session.delete(category)
+            db_session.commit()
+            return True
+
+        return False
+
+    except Exception as e:
+        print(f"Error deleting category: {e}")
+        return False
+
+
+def db_delete_product(product_id):
+    "Delete product by id"
+    try:
+        product = db_session.query(Products).filter(Products.id == product_id).first()
+        if product:
+            db_session.delete(product)
+            db_session.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error whiling deleting product: {e}")
+        return False
+
+
+def db_update_product(product_id, name, description, price, image):
+    """ Update product details"""
+    try:
+        product = db_session.query(Products).filter(Products.id == product_id).first()
+        if product:
+            product.product_name = name
+            product.description = description
+            product.price = price
+            product.image = image
+            db_session.commit()
+            return True
+
+        return False
+    except IntegrityError:
+        return False

@@ -72,3 +72,71 @@ def generate_buttons_for_finally(product_carts: Iterable[Finally_carts]) -> Inli
         builder.adjust(1, 4)
 
     return builder.as_markup()
+
+
+def generate_categories_for_admin(categories):
+    """Generate keyboard with categories for admin"""
+    keyboard = []
+    for category in categories:
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"{category.category_name}",
+                callback_data=f"admin_category_{category.id}"
+            )
+        ])
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def generate_products_for_admin(products):
+    """Generate keyboard with products for admin"""
+    keyboards = []
+    for product in products:
+        keyboards.append([
+            InlineKeyboardButton(
+                text=f"{product.product_name}",
+                callback_data=f"admin_prod_{product.id}"
+            )
+        ])
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboards)
+
+
+def generate_edit_product_keyboard(product_id):
+    """Generate keyboard for product editing"""
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="✏️ Edit",
+                callback_data=f"edit_product_{product_id}"
+            ),
+            InlineKeyboardButton(
+                text="🗑️ Delete",
+                callback_data=f"delete_product_{product_id}"
+            ),
+            InlineKeyboardButton(
+                text="🔙",
+                callback_data="return_to_products"
+            ),
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def generate_confirm_delete_keyboard(item_type, item_id):
+    """Generate keyboard for confirming deletion"""
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="✅ Yes, delete",
+                callback_data=f"confirm_delete_{item_type}_{item_id}"
+            ),
+            InlineKeyboardButton(
+                text="❌ No, cancel",
+                callback_data="cancel_delete"
+            )
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

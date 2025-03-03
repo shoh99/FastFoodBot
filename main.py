@@ -9,18 +9,23 @@ from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, 
 from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
 
+from admin.admin_commands import admin_router
 from keyboards.inline_kb import *
 from keyboards.reply_kb import *
 from database.utils import *
 from utils.helper import *
+from filters.admin_filters import is_admin
 
 load_dotenv()
 
 TOKEN = getenv('TOKEN')
 PAYMENT = getenv('PAYMENT')
 MANAGER = getenv('MANAGER')
+ADMIN_IDS = [int(id) for id in getenv('ADMIN_IDS', '').split(',')]
 
 dp = Dispatcher()
+dp.include_router(admin_router)
+
 bot = Bot(TOKEN,
           default=DefaultBotProperties(
               parse_mode=ParseMode.HTML,
@@ -31,8 +36,12 @@ bot = Bot(TOKEN,
 @dp.message(CommandStart())
 async def command_start(message: Message):
     """start bot"""
+    user_id = message.from_user.id
+    admin_status = is_admin(user_id)
+    print("admin status: " + str(admin_status))
     await message.answer(f"Hello <b>{message.from_user.full_name} </b>\n"
-                         f"Greetings from fast food bot Roxat")
+                         f"Greetings from fast food bot Roxat" +
+                         (f"\n\n<b>>🔐Admin access detected!</b> \n User /admin to see available commands." if admin_status else ""))
 
     await user_register(message)
 
@@ -120,7 +129,7 @@ async def return_to_category_button(call: CallbackQuery):
                                 )
 
 
-@dp.callback_query(F.data.contains('product_'))
+@dp.callback_query(F.data.startswith('product_'))
 async def show_product_details(call: CallbackQuery):
     """show selected product details"""
     chat_id = call.message.chat.id
@@ -329,7 +338,10 @@ async def show_carts(message: Message):
 
 @dp.message(F.text == "🛠️Settings")
 async def show_settings(message: Message):
-    await message.answer(text="Setting is selected")
+    user_id = message.from_user.id
+    admin_status = is_admin(user_id)
+    await message.answer(text="Setting is selected",
+                         reply_markup=setting_commands(admin_status))
 
 
 @dp.message(F.text == "📄 History")
