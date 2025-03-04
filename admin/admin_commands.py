@@ -19,20 +19,25 @@ from database.utils import (
     db_get_all_categories,
     db_delete_category,
     db_update_product,
-    db_get_product_by_id, db_delete_product
+    db_get_product_by_id, db_delete_product, db_get_category, db_update_category
 )
 
 from keyboards.inline_kb import (
     generate_categories_for_admin,
     generate_products_for_admin,
     generate_edit_product_keyboard,
-    generate_confirm_delete_keyboard
+    generate_confirm_delete_keyboard, generate_categories_for_admin_edit, generate_edit_category_keyboard
 )
 
 admin_router = Router()
 
 
 class CategoryForm(StatesGroup):
+    name = State()
+
+
+class EditCategoryForm(StatesGroup):
+    category_id = State()
     name = State()
 
 
@@ -63,19 +68,29 @@ class DeleteProductForm(StatesGroup):
 @admin_router.message(IsAdmin(), Command("admin"))
 async def show_admin_panel(message: Message):
     """Show admin panel commands"""
+    try:
+        await message.answer(
+            "🔐 <b>Admin Panel</b>\n\n"
+            "Available commands:\n"
+            "/addcategory - Add new category\n"
+            "/addproduct - Add new product\n"
+            "/categories - View and manage categories\n"
+            "/products - View and manage products"
+        )
+    except Exception as e:
+        print(f"Exception during show_admin_panel: {str(e)}")
 
-    await message.answer(
-        "🔐 <b>Admin Panel</b>\n\n"
-        "Available commands:\n"
-        "/addcategory - Add new category\n"
-        "/addproduct - Add new product\n"
-        "/categories - View and manage categories\n"
-        "/products - View and manage products"
-    )
 
 @admin_router.message(F.text == "🔐Admin")
-async def show_admin_panel_from_text(message: Message):
+async def show_admin_panel_from_text(message: Message, bot: Bot):
+    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id - 1)
     await show_admin_panel(message)
+
+
+"""
+Admin categories management
+"""
+
 
 @admin_router.message(IsAdmin(), Command("addcategory"))
 async def add_category_command(message: Message, state: FSMContext):
@@ -96,6 +111,110 @@ async def process_category_name(message: Message, state: FSMContext):
         await message.answer(f"❌Failed to add category. It might already exist.")
 
     await state.clear()
+
+
+@admin_router.message(IsAdmin(), Command("categories"))
+async def list_categories(message: Message):
+    """List all categories with management options"""
+    categories = db_get_all_categories()
+    if not categories:
+        await message.answer("No categories found.")
+        return
+
+    text = "📋 <b>Categories</b>\n\n"
+    text += "Select category to edit or delete"
+
+    await message.answer(
+        text,
+        reply_markup=generate_categories_for_admin_edit(categories)
+    )
+
+
+@admin_router.callback_query(F.data.startswith("admin_category_edit_"))
+async def manage_selected_category(callback: CallbackQuery, state: FSMContext):
+    category_id = int(callback.data.split("_")[-1])
+    category = db_get_category(category_id)
+
+    if not category:
+        await callback.message.answer("Category not found")
+
+    text = f"Category Name: <b>{category.category_name}</b>\n"
+    await callback.message.edit_text(text, reply_markup=generate_edit_category_keyboard(category_id))
+
+
+@admin_router.callback_query(F.data.startswith("edit_category_"))
+async def update_category(callback: CallbackQuery, state: FSMContext):
+    category_id = int(callback.data.split("_")[-1])
+    category = db_get_category(category_id)
+
+    if not category:
+        await callback.message.answer("Category not found")
+
+    await state.set_state(EditCategoryForm.category_id)
+    await state.update_data(category_id=category_id)
+
+    await callback.message.edit_text(f"Editing category: {category.category_name}\n"
+                                     f"Enter new name (or send 'skip' to keep current)")
+
+    await state.set_state(EditCategoryForm.name)
+
+
+@admin_router.message(IsAdmin(), EditCategoryForm.name)
+async def process_edit_category_name(message: Message, state: FSMContext):
+    if message.text.lower() != "skip":
+        data = await state.get_data()
+        category_id = data["category_id"]
+        name = message.text.strip()
+        success = db_update_category(category_id, name)
+
+        if success:
+            await message.answer("✅ Category has been updated successfully!")
+        else:
+            await message.answer("❌ Failed to update category.")
+
+        await state.clear()
+
+
+@admin_router.callback_query(IsAdmin(), F.data.startswith("delete_category_"))
+async def confirm_delete_category(callback: CallbackQuery, state: FSMContext):
+    category_id = int(callback.data.split("_")[-1])
+    category = db_get_category(category_id)
+
+    if not category:
+        await callback.answer("Category not found")
+
+    await state.set_state(DeleteCategoryForm.category_id)
+    await state.update_data(category_id=category_id)
+
+    await callback.message.edit_text(
+        f"⚠️ Are you sure you want to delete category: {category.category_name}",
+        reply_markup=generate_confirm_delete_keyboard("category", category_id)
+    )
+
+@admin_router.callback_query(IsAdmin(), F.data.startswith("confirm_delete_category"))
+async def delete_category(callback: CallbackQuery, state: FSMContext):
+    category_id = int(callback.data.split("_")[-1])
+    success = db_delete_category(category_id)
+    if success:
+        await callback.message.edit_text("✅ Category has been deleted successfully!")
+    else:
+        await callback.message.edit_text("Failed to delete category.")
+
+    await state.clear()
+
+
+@admin_router.callback_query(F.data.startswith("return_to_categories"))
+async def return_to_category_list(callback: CallbackQuery, bot: Bot):
+    try:
+        await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
+        await list_categories(callback.message)
+    except Exception as e:
+        print(f"Error in return_to_category_list {str(e)}")
+
+
+"""
+Admin product management
+"""
 
 
 @admin_router.message(IsAdmin(), Command("addproduct"))
@@ -180,21 +299,6 @@ async def process_product_image(message: Message, state: FSMContext, bot: Bot):
         await message.answer(f"X Failed to add product. It might already exist.")
 
     await state.clear()
-
-
-@admin_router.message(IsAdmin(), Command("categories"))
-async def list_categories(message: Message):
-    """List all categories with management options"""
-    categories = db_get_all_categories()
-    if not categories:
-        await message.answer("No categories found.")
-        return
-
-    text = "📋 <b>Categories</b>\n\n"
-    for category in categories:
-        text += f"{category.category_name} (ID: {category.id}) \n"
-
-    await message.answer(text)
 
 
 @admin_router.message(IsAdmin(), Command("products"))
@@ -361,14 +465,23 @@ async def confirm_delete_product(callback: CallbackQuery, state: FSMContext):
 @admin_router.callback_query(IsAdmin(), F.data.startswith("confirm_delete_product"))
 async def delete_product(callback: CallbackQuery, state: FSMContext):
     product_id = int(callback.data.split("_")[-1])
+    product = db_get_product_by_id(product_id)
+    image_path = product.image
+    if os.path.exists(image_path):
+        os.remove(image_path)
 
-    successs = db_delete_product(product_id)
-    if successs:
+    success = db_delete_product(product_id)
+    if success:
         await callback.message.edit_text("✅ Product has been deleted successfully!")
     else:
         await callback.message.edit_text("Failed to delete product.")
 
     await state.clear()
+
+
+@admin_router.callback_query(IsAdmin(), F.data.startswith("cancel_delete"))
+async def cancel_delete(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Product Deletion Canceled")
 
 
 @admin_router.callback_query(F.data.startswith("return_to_products"))

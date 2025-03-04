@@ -38,4 +38,5 @@ def setting_commands(is_admin) -> ReplyKeyboardMarkup:
         builder.button(text="🔐Admin")
 
     builder.button(text ="Change language")
+    builder.button(text="📝Main menu")
     return builder.as_markup(resize_keyboard=True)

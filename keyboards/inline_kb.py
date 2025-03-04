@@ -88,6 +88,20 @@ def generate_categories_for_admin(categories):
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
+def generate_categories_for_admin_edit(categories):
+    """Generate keyboard with categories for admin"""
+    keyboard = []
+    for category in categories:
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"{category.category_name}",
+                callback_data=f"admin_category_edit_{category.id}"
+            )
+        ])
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
 def generate_products_for_admin(products):
     """Generate keyboard with products for admin"""
     keyboards = []
@@ -117,6 +131,28 @@ def generate_edit_product_keyboard(product_id):
             InlineKeyboardButton(
                 text="🔙",
                 callback_data="return_to_products"
+            ),
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def generate_edit_category_keyboard(id):
+    """Generate keyboard for product editing"""
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="✏️ Edit",
+                callback_data=f"edit_category_{id}"
+            ),
+            InlineKeyboardButton(
+                text="🗑️ Delete",
+                callback_data=f"delete_category_{id}"
+            ),
+            InlineKeyboardButton(
+                text="🔙",
+                callback_data="return_to_categories"
             ),
         ]
     ]

@@ -213,6 +213,11 @@ def db_get_all_categories():
     return db_session.query(Categories).all()
 
 
+def db_get_category(category_id: int) -> Optional[Type[Categories]]:
+    """get category"""
+    return db_session.query(Categories).filter(Categories.id == category_id).first()
+
+
 def db_get_all_products():
     """get all products from database"""
     return db_session.query(Products).all()
@@ -264,6 +269,19 @@ def db_update_product(product_id, name, description, price, image):
             product.description = description
             product.price = price
             product.image = image
+            db_session.commit()
+            return True
+
+        return False
+    except IntegrityError:
+        return False
+
+
+def db_update_category(category_id, name):
+    try:
+        category = db_session.query(Categories).filter(Categories.id == category_id).first()
+        if category:
+            category.category_name = name
             db_session.commit()
             return True
 

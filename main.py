@@ -73,7 +73,7 @@ async def update_user_contact(message: Message):
 
 async def show_main_menu(message: Message):
     """Show main menu buttons"""
-    await message.answer(text="Choose your category",
+    await message.answer(text="Main menu",
                          reply_markup=generate_main_menu())
 
 
