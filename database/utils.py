@@ -11,6 +11,10 @@ with Session(engine) as session:
     db_session = session
 
 
+def db_get_user(chat_id: int):
+    return db_session.query(Users).filter(Users.telegram == chat_id).first()
+
+
 def db_register_user(user_name: str, chat_id: int) -> bool:
     try:
         query = Users(name=user_name, telegram=chat_id)
@@ -28,6 +32,17 @@ def dp_update_user(chat_id: int, phone: str):
     query = update(Users).where(Users.telegram == chat_id).values(phone=phone)
     db_session.execute(query)
     db_session.commit()
+
+
+def db_add_lang(chat_id: int, lang: str):
+    """adding user language"""
+    query = update(Users).where(Users.telegram == chat_id).values(lang=lang)
+    db_session.execute(query)
+    db_session.commit()
+
+
+def db_get_user_lang(chat_id: int):
+    return db_session.query(Users.lang).filter(Users.telegram == chat_id).first()
 
 
 def db_create_user_cart(chat_id: int):

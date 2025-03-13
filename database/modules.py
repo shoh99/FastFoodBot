@@ -28,7 +28,7 @@ class Users(Base):
     name: Mapped[str] = mapped_column(String(50))
     telegram: Mapped[int] = mapped_column(BigInteger, unique=True)
     phone: Mapped[str] = mapped_column(String(30), nullable=True)
-
+    lang: Mapped[str] = mapped_column(String(30), nullable=True)
     carts: Mapped[int] = relationship('Carts', back_populates='user_cart')
 
     def __str__(self):
