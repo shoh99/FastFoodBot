@@ -125,7 +125,7 @@ async def return_to_main_menu(message: Message):
         print(e.message)
 
 
-@dp.callback_query(F.data.regexp(r'category_[1-9]'))
+@dp.callback_query(F.data.regexp(r'category_'))
 async def show_product_button(call: CallbackQuery):
     """Show all products by chosen category"""
     chat_id = call.message.chat.id
@@ -150,7 +150,7 @@ async def return_to_category_button(call: CallbackQuery):
     await bot.edit_message_text(chat_id=chat_id,
                                 message_id=message_id,
                                 text=translations[lang]["choose_category"],
-                                reply_markup=generate_category_menu(chat_id)
+                                reply_markup=generate_category_menu(chat_id, lang)
                                 )
 
 
@@ -160,7 +160,9 @@ async def show_product_details(call: CallbackQuery):
     chat_id = call.message.chat.id
     lang = LANG.get(chat_id, "uz")
     message_id = call.message.message_id
-    product_id = int(call.data[-1])
+    data = call.data.split("_")
+
+    product_id = int(data[-1])
 
     product = db_product_details(product_id)
     await bot.delete_message(chat_id=chat_id,
@@ -172,7 +174,7 @@ async def show_product_details(call: CallbackQuery):
 
         await bot.send_message(chat_id=chat_id,
                                text=translations[lang]["choose_modification"],
-                               reply_markup=back_arrow_button())
+                               reply_markup=back_arrow_button(lang))
 
         await bot.send_photo(chat_id=chat_id,
                              photo=FSInputFile(path=product.image),
@@ -258,10 +260,10 @@ async def put_products_to_cart(call: CallbackQuery):
                                             total_price=user_cart.total_price):
 
             await bot.send_message(chat_id=chat_id,
-                                   text=translations[lang]["added_to_cart"].format(product_name))
+                                   text=translations[lang]["added_to_cart"].format(product_name=product_name))
         else:
             await bot.send_message(chat_id=chat_id,
-                                   text=translations[lang]["updated_in_cart".format(product_name)])
+                                   text=translations[lang]["updated_in_cart"].format(product_name=product_name))
 
         await return_to_category_menu(call.message)
 

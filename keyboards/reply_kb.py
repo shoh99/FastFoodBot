@@ -26,9 +26,9 @@ def back_to_main_menu(lang) -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True)
 
 
-def back_arrow_button() -> ReplyKeyboardMarkup:
+def back_arrow_button(lang) -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
-    builder.button(text="⬅️Go Back")
+    builder.button(text=translations[lang]["go_back_button"])
     return builder.as_markup(resize_keyboard=True)
 
 
