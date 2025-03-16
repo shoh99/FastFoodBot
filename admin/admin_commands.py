@@ -140,7 +140,7 @@ async def manage_selected_category(callback: CallbackQuery, state: FSMContext):
     if not category:
         await callback.message.answer(translations[lang]["category_not_found"])
 
-    text = translations[lang]["category_name_label"].format(category_name=category.category_name)
+    text = translations[lang]["category_name_label"].format(category_name=category["category_name"])
     await callback.message.edit_text(text, reply_markup=generate_edit_category_keyboard(lang, category_id))
 
 
@@ -157,7 +157,7 @@ async def update_category(callback: CallbackQuery, state: FSMContext):
     await state.set_state(EditCategoryForm.category_id)
     await state.update_data(category_id=category_id)
 
-    await callback.message.edit_text(translations[lang]["editing_category_prompt"].format(category_name=category.category_name))
+    await callback.message.edit_text(translations[lang]["editing_category_prompt"].format(category_name=category["category_name"]))
 
     await state.set_state(EditCategoryForm.name)
 
@@ -195,7 +195,7 @@ async def confirm_delete_category(callback: CallbackQuery, state: FSMContext):
     await state.update_data(category_id=category_id)
 
     await callback.message.edit_text(
-        translations[lang]["confirm_delete_category_prompt"].format(category_name=category.category_name),
+        translations[lang]["confirm_delete_category_prompt"].format(category_name=category["category_name"]),
         reply_markup=generate_confirm_delete_keyboard("category", category_id, lang)
     )
 
@@ -361,9 +361,9 @@ async def show_product_actions(callback: CallbackQuery):
         await callback.message.answer(translations[lang]["products_not_found"])
         return
 
-    text = translations[lang]["product_details_text"].format(product_name=product.product_name,
-                                                             product_description=product.description,
-                                                             product_price=product.price)
+    text = translations[lang]["product_details_text"].format(product_name=product["product_name"],
+                                                             product_description=product["description"],
+                                                             product_price=product["price"])
 
     await callback.message.edit_text(
         text,
@@ -384,7 +384,7 @@ async def start_edit_product(callback: CallbackQuery, state: FSMContext):
 
     await state.set_state(EditProductForm.product_id)
     await state.update_data(product_id=product_id)
-    text = translations[lang]["editing_product_prompt"].format(product_name=product.product_name)
+    text = translations[lang]["editing_product_prompt"].format(product_name=product["product_name"])
     await callback.message.edit_text(
         text
     )
@@ -471,10 +471,10 @@ async def update_product(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    name = data.get("name", product.product_name)
-    description = data.get("description", product.description)
-    price = data.get("price", product.price)
-    image = data.get("image", product.image)
+    name = data.get("name", product["product_name"])
+    description = data.get("description", product["description"])
+    price = data.get("price", product["price"])
+    image = data.get("image", product["image"])
 
     success = db_update_product(
         product_id=product_id,
@@ -506,7 +506,7 @@ async def confirm_delete_product(callback: CallbackQuery, state: FSMContext):
     await state.update_data(product_id=product_id)
 
     await callback.message.edit_text(
-        translations[lang]["confirm_delete_product_prompt"].format(product_name=product.product_name),
+        translations[lang]["confirm_delete_product_prompt"].format(product_name=product['product_name']),
         reply_markup=generate_confirm_delete_keyboard("product", product_id, lang)
     )
 
@@ -517,7 +517,7 @@ async def delete_product(callback: CallbackQuery, state: FSMContext):
     product = db_get_product_by_id(product_id)
     chat_id = callback.message.chat.id
     lang = LANG.get(chat_id, "uz")
-    image_path = product.image
+    image_path = product['image']
     if os.path.exists(image_path):
         os.remove(image_path)
 

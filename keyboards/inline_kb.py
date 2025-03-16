@@ -18,8 +18,8 @@ def generate_category_menu(chat_id: int, lang: str) -> InlineKeyboardMarkup:
     cart_text = translations[lang][cart_text_key].format(total_price=total_price if total_price else 0)
     builder.button(text=cart_text, callback_data="your_cart")
 
-    [builder.button(text=category.category_name,
-                    callback_data=f'category_{category.id}') for category in categories]
+    [builder.button(text=category["category_name"],
+                    callback_data=f'category_{category["id"]}') for category in categories]
 
     builder.adjust(1, 2)
     return builder.as_markup()
@@ -30,8 +30,8 @@ def show_product_by_category(category_id: int, user_language: str) -> InlineKeyb
     products = db_get_products_by_category(category_id)
     builder = InlineKeyboardBuilder()
 
-    [builder.button(text=product.product_name,
-                    callback_data=f'product_{product.id}') for product in products]
+    [builder.button(text=product["product_name"],
+                    callback_data=f'product_{product["id"]}') for product in products]
     builder.adjust(2)
 
     # Use translated text for "Back" button
@@ -90,16 +90,16 @@ def generate_buttons_for_finally(user_language, product_carts: Iterable[Finally_
             # Use translated text for quantity increase button
             quantity_increase_text_key = "quantity_increase"
             quantity_increase_text = translations[user_language][quantity_increase_text_key]
-            builder.button(text=quantity_increase_text, callback_data=f'add_{cart.id}')
-            builder.button(text=f'{cart.product_name}', callback_data='product')
+            builder.button(text=quantity_increase_text, callback_data=f'add_{cart["id"]}')
+            builder.button(text=f'{cart["product_name"]}', callback_data='product')
             # Use translated text for quantity decrease button
             quantity_decrease_text_key = "quantity_decrease"
             quantity_decrease_text = translations[user_language][quantity_decrease_text_key]
-            builder.button(text=quantity_decrease_text, callback_data=f'minus_{cart.id}')
+            builder.button(text=quantity_decrease_text, callback_data=f'minus_{cart["id"]}')
             # Use translated text for "Remove" button
             remove_item_text_key = "remove_item_button"
             remove_item_text = translations[user_language][remove_item_text_key]
-            builder.button(text=remove_item_text, callback_data=f'remove_{cart.id}')
+            builder.button(text=remove_item_text, callback_data=f'remove_{cart["id"]}')
 
         builder.adjust(1, 4)
 
@@ -112,8 +112,8 @@ def generate_categories_for_admin(categories):
     for category in categories:
         keyboard.append([
             InlineKeyboardButton(
-                text=f"{category.category_name}",
-                callback_data=f"admin_category_{category.id}"
+                text=f"{category['category_name']}",
+                callback_data=f"admin_category_{category['id']}"
             )
         ])
 
@@ -126,8 +126,8 @@ def generate_categories_for_admin_edit(categories):
     for category in categories:
         keyboard.append([
             InlineKeyboardButton(
-                text=f"{category.category_name}",
-                callback_data=f"admin_category_edit_{category.id}"
+                text=f"{category['category_name']}",
+                callback_data=f"admin_category_edit_{category['id']}"
             )
         ])
 
@@ -140,8 +140,8 @@ def generate_products_for_admin(products):
     for product in products:
         keyboards.append([
             InlineKeyboardButton(
-                text=f"{product.product_name}",
-                callback_data=f"admin_prod_{product.id}"
+                text=f"{product['product_name']}",
+                callback_data=f"admin_prod_{product['id']}"
             )
         ])
 

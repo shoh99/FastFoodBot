@@ -6,14 +6,6 @@ from sqlalchemy import String, Integer, BigInteger, DECIMAL, ForeignKey, UniqueC
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
-load_dotenv()
-
-DB_USER = getenv('DB_USER')
-DB_PASSWORD = getenv('DB_PASSWORD')
-DB_ADDRESS = getenv('DB_HOST')
-DB_NAME = getenv('DB_NAME')
-
-engine = create_engine(f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}/{DB_NAME}', echo=True)
 
 
 class Base(DeclarativeBase):
@@ -95,36 +87,3 @@ class Products(Base):
     def __str__(self):
         return self.product_name
 
-def main():
-    Base.metadata.create_all(engine)
-    categories = ('Lavash', 'Donar', 'Hot Dogs', 'Diserts', 'Souces')
-    products = (
-        (1, 'Mini Lavash', 'Made by fresh products', 'media/food-sample.jpg', 20000),
-        (1, 'Big Lavash', 'Made by fresh products', 'media/food-sample.jpg', 23000),
-        (1, 'Mini with cheese', 'Made by fresh products', 'media/food-sample.jpg', 24000),
-        (2, 'Hamburger', 'Made by fresh products', 'media/food-sample.jpg', 29000),
-        (2, 'Cheeseburger', 'Made by fresh products', 'media/food-sample.jpg', 25000),
-        (2, 'KingBurger', 'Made by fresh products', 'media/food-sample.jpg', 30000)
-    )
-
-    with Session(engine) as session:
-        for category in categories:
-            query = Categories(category_name=category)
-            session.add(query)
-
-        session.commit()
-
-        for product in products:
-            query = Products(
-                category_id=product[0],
-                product_name=product[1],
-                description=product[2],
-                image=product[3],
-                price=product[4]
-            )
-            session.add(query)
-        session.commit()
-
-
-if __name__ == "__main__":
-    main()
