@@ -165,19 +165,20 @@ async def show_product_details(call: CallbackQuery):
     product_id = int(data[-1])
 
     product = db_product_details(product_id)
+    print(product)
     await bot.delete_message(chat_id=chat_id,
                              message_id=message_id)
 
     if user_cart := db_get_user_cart(chat_id):
-        db_update_user_cart(price=product.price, cart_id=user_cart.id)
-        text = text_for_caption(product_name=product.product_name, price=product.price, description=product.description)
+        db_update_user_cart(price=product["price"], cart_id=user_cart["id"])
+        text = text_for_caption(product_name=product["product_name"], price=product["price"], description=product["description"])
 
         await bot.send_message(chat_id=chat_id,
                                text=translations[lang]["choose_modification"],
                                reply_markup=back_arrow_button(lang))
 
         await bot.send_photo(chat_id=chat_id,
-                             photo=FSInputFile(path=product.image),
+                             photo=FSInputFile(path=product["image"]),
                              caption=text,
                              reply_markup=generate_constructor_button(lang)
                              )
@@ -211,30 +212,30 @@ async def increase_product_quantity(call: CallbackQuery):
     user_cart = db_get_user_cart(chat_id)
 
     if action == '+':
-        user_cart.total_products += 1
+        user_cart["total_products"] += 1
     elif action == '-':
-        if user_cart.total_products < 2:
+        if user_cart["total_products"] < 2:
             await call.answer(translations[lang]["quantity_minimum"])
         else:
-            user_cart.total_products -= 1
+            user_cart["total_products"] -= 1
 
-    product_price = product.price * user_cart.total_products
+    product_price = product["price"] * user_cart["total_products"]
     db_update_user_cart(price=product_price,
-                        cart_id=user_cart.id,
-                        quantity=user_cart.total_products)
+                        cart_id=user_cart["id"],
+                        quantity=user_cart["total_products"])
 
-    text = text_for_caption(product_name=product.product_name, price=product_price, description=product.description)
+    text = text_for_caption(product_name=product["product_name"], price=product_price, description=product["description"])
 
     try:
         await bot.edit_message_media(chat_id=chat_id,
                                      message_id=message_id,
                                      media=InputMediaPhoto(
-                                         media=FSInputFile(path=product.image),
+                                         media=FSInputFile(path=product['image']),
                                          caption=text
                                      ),
                                      reply_markup=generate_constructor_button(
                                          lang,
-                                         quantity=user_cart.total_products)
+                                         quantity=user_cart["total_products"])
                                      )
     except TelegramBadRequest:
         pass
@@ -254,10 +255,10 @@ async def put_products_to_cart(call: CallbackQuery):
         await bot.delete_message(chat_id=chat_id,
                                  message_id=message_id)
 
-        if db_insert_or_update_finally_cart(cart_id=user_cart.id,
+        if db_insert_or_update_finally_cart(cart_id=user_cart["id"],
                                             product_name=product_name,
-                                            total_products=user_cart.total_products,
-                                            total_price=user_cart.total_price):
+                                            total_products=user_cart["total_products"],
+                                            total_price=user_cart["total_price"]):
 
             await bot.send_message(chat_id=chat_id,
                                    text=translations[lang]["added_to_cart"].format(product_name=product_name))
@@ -296,7 +297,7 @@ async def update_finally_cart_products(call: CallbackQuery):
     action = call.data.split('_')[0].strip()
 
     finally_cart = db_get_finally_cart(int(cart_id))
-    product = db_get_product_by_name(finally_cart.product_name)
+    product = db_get_product_by_name(finally_cart["product_name"])
     if action == 'remove':
         if db_delete_product_from_finally_cart(int(cart_id)):
             await call.answer(text=f"Product removed from cart")
@@ -305,11 +306,11 @@ async def update_finally_cart_products(call: CallbackQuery):
     new_quantity = 0
     if product:
         if action == 'add':
-            new_price = finally_cart.final_price + product.price
-            new_quantity = finally_cart.quantity + 1
+            new_price = finally_cart["final_price"] + product["price"]
+            new_quantity = finally_cart["quantity"] + 1
         elif action == 'minus':
-            new_price = finally_cart.final_price - product.price
-            new_quantity = finally_cart.quantity - 1
+            new_price = finally_cart["final_price"] - product["price"]
+            new_quantity = finally_cart["quantity"] - 1
     else:
         await call.answer(text=translations[lang]["product_not_exist"])
 
@@ -317,7 +318,7 @@ async def update_finally_cart_products(call: CallbackQuery):
         db_update_finally_cart(int(cart_id), new_price, new_quantity)
     else:
         if db_delete_product_from_finally_cart(int(cart_id)):
-            product_name = product.product_name if product else "Product"
+            product_name = product["product_name"] if product else "Product"
             await call.answer(text=translations[lang]["removed_from_cart"])
 
     text, cart_products = count_products_from_cart(chat_id, "Test")
